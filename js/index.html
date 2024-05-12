@@ -7,16 +7,29 @@
     <link rel="stylesheet" href="main.css">
 </head>
 <body>
-    <div id="alertBox" class="alert-box">알림창<button onclick="closeAlertBox()">닫기</button></div>
-    <button onclick="openAlertBox()">alert</button>
+    <div id="alertBox" class="alert-box"><p id="title">알림창</p><button id="closeBox">닫기</button></div>
+    <button onclick="openAlertBox('block')">alert</button>
 
+    <button onclick="openIDBox()">ID</button>
+    <button onclick="openPWDBox()">PWD</button>
     <script>
-        function openAlertBox() {
-            document.getElementById('alertBox').style.display='block';
+        function openAlertBox(setting) {
+            document.getElementById('alertBox').style.display=setting;
         }
-        function closeAlertBox() {
-            document.getElementById('alertBox').style.display='none';
+
+        function openIDBox() {
+            document.getElementById('alertBox').style.display='block'
+            document.getElementById('title').innerHTML = "ID를 입력하세요"
         }
+        function openPWDBox() {
+            document.getElementById('alertBox').style.display='block'
+            document.getElementById('title').innerHTML = "PWd를 입력하세요"
+        }
+        
+        document.getElementById('closeBox').addEventListener('click', ()=> {
+            document.getElementById('alertBox').style.display = 'none'
+        })
+
     </script>
 </body>
 </html>
