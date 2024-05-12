@@ -10,7 +10,9 @@
     <link rel="stylesheet" href="main.css">
 </head>
 
+
 <body>
+    
     <nav class="navbar navbar-light bg-light">
         <div class="container-fluid">
             <span class="navbar-brand">Navbar</span>
@@ -32,6 +34,51 @@
         })
         document.querySelector("#test1")
     </script>
+
+
+        <!-- jquery cdn -->
+        <script
+        src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+        crossorigin="anonymous"></script>
+
+    <p class="hello">hi</p>
+    <p class="hello">hi</p>
+    <p class="hello">hi</p>
+    <p class="hello">hi</p>
+    <script>
+        document.querySelector('.hello').innerHTML = "hello"
+        $('.hello').html('you')
+        $('.hello').css('color', 'red')
+        $('.hello').addClass('show')
+        $('.hello').toggleClass('show')
+    </script>
+
+    <button id="test-btn">
+        button
+    </button>
+    <script>
+        $('#test-btn').on('click', function() {
+            $('.hello').slideUp()
+        })
+    </script>
+
+    <button id="login-btn">login</button>
+    <div class="black-bg">
+        <div class="white-bg">
+          <h4>로그인하세요</h4>
+          <button class="btn btn-danger" id="close">닫기</button>
+        </div>
+      </div> 
+      <script>
+        $('.black-bg').css('display', 'none')
+        $('#close').on('click', ()=> {
+            $('.black-bg').css('display', 'none')
+        })
+        $('#login-btn').on('click', ()=> {
+            $('.black-bg').css('display', "block")
+        })
+      </script>
 </body>
 
 </html>
