@@ -13,9 +13,8 @@ It has FFmpeg, OpenGL, and Latex dependencies.
 
 It's an official repository maintained by the original author, but since it's for his own use, the README recommends that users use the community version for backwards compatibility, documentation, testing, community interaction, and more.
 
-```bash
 
-in Mac OS:
+### in Mac OS:
 ```bash
 brew install py3cairo ffmpeg
 
@@ -27,6 +26,8 @@ brew install pango pkg-config scipy
 # The LaTeX distribution recommended by the official documentation is MacTex.
 brew install --cask mactex-no-gui
 
+# 
+
 pip3 install manim
 ```
 * py3cairo: A Python 3 binding for the Cairo graphics library.
@@ -34,3 +35,7 @@ pip3 install manim
 * pango: A library for laying out and rendering text, with an emphasis on internationalization.
 * pkg-config: A helper tool used when compiling applications and libraries.
 * scipy: A Python library for scientific and technical computing.
+
+# index
+## tutorials
+* [00_a_circle](tutorial/00_a_circle/00_a_circle.md)
