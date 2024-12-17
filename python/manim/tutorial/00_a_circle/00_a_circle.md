@@ -34,8 +34,13 @@ manim -pql --format gif a_circle.py CreateCircle
 
 ## Result of the animation
 ![result](a_circle.gif)
-```
 
-[]: # (END)
+## About the code
+* ```class CreateCircle(Scene):```
+* ```def construct(self):``` The construct method is used to construct the scene in Manim.
+* ```circle = Circle()``` Creates a Circle object.
+* ```self.camera.background_color = WHITE``` Sets the background color of the camera to white.
+* ```circle.set_fill(BLUE, opacity=0.5)``` Fills the circle with blue color and sets the opacity to 0.5.
+* ```self.play(Create(circle))``` Plays the animation to create the circle.
 
-[]: # (BEGIN)[]
+> Function code for auxiliary functions or math can be placed outside the class, but all animations must be inside the construct() method of the class that inherits from Scene.
