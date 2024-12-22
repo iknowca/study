@@ -38,4 +38,4 @@ This is called object code.
 If the source code is many, we need to compile it into multiple object codes and then **link** them together.
 
 C and C++ code need pre-processing, which is a process that is done before the compilation.
-The preprocessing process instructions like `#include`, `#define`, `#include`, `#define`, `#include` and `#define`. 
+The preprocessing process instructions like `#include`, `#define`.
