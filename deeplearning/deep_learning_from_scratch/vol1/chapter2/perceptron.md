@@ -148,3 +148,9 @@ def XOR(x1, x2):
     y = AND(s1, s2)
     return y
 ```
+
+The XOR gate is implemented by combining the NAND and OR gates with an AND gate.
+NAND, OR, and AND gates are all perceptrons, and the XOR gate is implemented by combining multiple perceptrons.
+so, the XOR gate is called a multi-layer perceptron.
+
+![](img/multilayer_network.png)
