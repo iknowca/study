@@ -42,3 +42,6 @@ pip3 install manim
 * [01_transform_square_to_circle](tutorial/01_transform_square_to_circle/01_transform_squre_to_circle.md)
 * [02_positioning_mobject](tutorial/02_positioning_mobject/positioning_mobject.md)
 * [03_animate_syntax](tutorial/03_animate_syntax/animate_syntax.md)
+
+## examples
+* [basic_concepts](example_gallery/basic_concepts/basic_concepts.md)
