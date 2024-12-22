@@ -1,7 +1,7 @@
 # Study
 
 ## index
-1. [deep learning from scratch]()
+1. [deep learning from scratch](deeplearning/deep_learning_from_scratch/deep_learning_from_scratch.md)
     * start date: 2024-12-16
     * end date: 0000-00-00
     * learning materials:
