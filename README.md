@@ -11,16 +11,16 @@
     * start date: 2024-12-16
     * end date: 0000-00-00
     * learning materials:
-        * *officialdocumentation*
+        * *official documentation*
 
 3. [C++ Programming]()
-    * start date: 0000-00-00
+    * start date: 2024-12-22
     * end date: 0000-00-00
     * learning materials:
         * *doit c++*
         
 4. [Computer System]()
-    * start date: 0000-00-00
+    * start date: 2024-12-23
     * end date: 0000-00-00
     * learning materials:
         * *Computer Systems -A Programmer's Perspective-*
