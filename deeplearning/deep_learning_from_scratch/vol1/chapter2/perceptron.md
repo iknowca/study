@@ -153,4 +153,4 @@ The XOR gate is implemented by combining the NAND and OR gates with an AND gate.
 NAND, OR, and AND gates are all perceptrons, and the XOR gate is implemented by combining multiple perceptrons.
 so, the XOR gate is called a multi-layer perceptron.
 
-![](img/multilayer_network.png)
+![](img/multilayer_network/main_ManimCE_v0.18.1.gif)
