@@ -6,5 +6,6 @@
 **/videos/*
 **/media/*
 
+*.pyc
 *.out
 .vscode/*
