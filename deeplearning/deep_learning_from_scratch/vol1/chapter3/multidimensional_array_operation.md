@@ -17,7 +17,7 @@ B = np.array([[1, 2], [3, 4], [5, 6]])
 ## matrix multiplication
 
 ![matrix_multiplication](./img/matrix_mutiplication/main_ManimCE_v0.18.1.gif)
-![matrix_multiplication](./img/matrix_multiplication2/main.mp4)
+![matrix_multiplication](./img/matrix_multiplication2/main_ManimCE_v0.18.1.gif)
 
 
 
