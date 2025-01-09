@@ -191,3 +191,5 @@ $$
 $$
 A_2(100\times100) \times W_3(100\times10) + b_3(10) = Y(100\times10)
 $$
+
+배치처리하는 소스코드는 [여기](./src/batched_mnist.ipynb)에서 확인하시라.
