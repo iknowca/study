@@ -23,16 +23,59 @@ $$
 
 The coefficient of determination can be calculated using the above formula. It is the sum of the squares of the differences between the target and the predicted value of each sample, divided by the sum of the squares of the differences between the target and the target mean. If the prediction is close to the target, the coefficient of determination is close to 1, and if the prediction is about the target mean, it is close to 0.
 
-<!-- ## 과대적합과 과소적합 -->
 ## Overfitting and Underfitting
 
-<!-- 모델을 훈련 세트로 훈련한다는 것은 모델이 훈련 세트에 최대한 잘 맞도록 학습 하는 것을 의미한다. 이렇게 훈련시킨 모델을 훈련세트와 테스트 세트에서 각각 평가하면 어떻게 될까? 일반적으로는 훈련 세트의 점수가 조금 더 높게 나온다. -->
 
 Training a model with a training set means that the model learns to fit the training set as well as possible. What happens if you evaluate this trained model on the training set and the test set? Generally, the score of the training set is slightly higher.
 
-<!-- 만약 훈련 세트에서 점수가 매우 좋지만, 테스트 세트에서는 점수가 나쁜경우 모델이 과대적합 되었다고 말한다. 훈련세트에만 잘 맞는 모델이기 때문에 테스트 세트나, 새로운 샘플에 대해 추론할 때 잘 동작하지 않을것이다. -->
 If the score is very good on the training set, but poor on the test set, the model is said to be **overfit**. Since it is a model that fits only the training set well, it will not work well when inferring the test set or new samples.
 
-<!-- 반대로 훈련세트보다 테스트 세트의 점수가 높거나, 두 점수가 모두 너무 낮은경우에는 모델이 과소적합되었다고 하고, 이런 경우는 충분히 훈련되지 않은 경우나, 훈련세트와 테스트 세트의 크기가 매우 작은경우 나타날 수 있다. -->
 Conversely, if the score on the test set is higher than the training set, or if both scores are too low, the model is said to be **underfit**, and this can occur when the model is not sufficiently trained or when the size of the training set and test set is very small.
 
+
+## Linear Regression
+
+### Limitations of KNN Regression
+
+![KNN Regression Limitation](./resources/limitaion_of_knn_regression.png)
+
+k-nearest neighbors regression finds the closest samples and calculates the average of the targets. If the sample is located outside the range of the training set, it predicts the wrong value.
+
+### Linear Regression
+
+Linear regression is one of the first machine learning algorithms to learn because it is relatively simple and performs well. It is an algorithm that learns a straight line when there is one feature.
+
+
+![Linear Regression](./resources/linear_regression.png)
+
+However, if you check the $R^2$ score for the training set and the test set,
+```python
+print(lr.score(train_input, train_target))
+print(lr.score(test_input, test_target))
+#>>>0.9398463339976041
+#>>>0.824750312331356
+```
+
+
+The score of the test set is significantly lower than that of the training set, and the score of the training set is not close to 1. This means that the model is underfit. Also, when you check the graph, the linear graph predicted by the data does not represent the data well because the length is close to 0.
+
+### Polynomial Regression
+
+To draw a graph of a second-degree equation, the length must be squared and added to the training set.
+```python
+train_poly = np.column_stack((train_input ** 2, train_input))
+test_poly = np.column_stack((test_input ** 2, test_input))
+```
+
+![polynomial regression](./resources/poly_linear_regression.png)
+
+
+But is this a linear regression even though it is a second-degree equation? This is linear regression. Linear regression is an algorithm that learns a linear equation for features. By squaring the features and adding new features, linear regression can learn a second-degree equation.
+
+
+```python
+print(lr.score(train_poly, train_target))
+print(lr.score(test_poly, test_target))
+#>>>0.9706807451768623
+#>>>0.9775935108325122
+```
