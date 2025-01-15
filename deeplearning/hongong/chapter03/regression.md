@@ -79,3 +79,42 @@ print(lr.score(test_poly, test_target))
 #>>>0.9706807451768623
 #>>>0.9775935108325122
 ```
+
+## Feature Engineering and Regularization
+
+A linear regression model that uses multiple features is called multiple regression. If you use one feature, the regression model learns a straight line, and if you use two features, it learns a plane.
+
+In high dimensions with many features, linear regression can represent very complex models. Also, the process of extracting new features using existing features is called feature engineering.
+
+However, if there are too many features, the model may be overfitted to the training set, so it may not fit well in the test set.
+
+### Regularization
+
+Regularization is a method of preventing the model from learning the training set excessively. In linear regression models, you can apply it by making the coefficients multiplied by the features small.
+
+There are Ridge and Lasso models that add regularization to linear regression models. Ridge applies regularization based on the square of the coefficients, and Lasso applies regularization based on the absolute value of the coefficients. Generally, Ridge is preferred.
+
+When using the Ridge and Lasso models, the regularization strength is called alpha and can be adjusted arbitrarily. If the alpha value is large, the regularization is strong, so the coefficients are reduced and underfitted.
+
+One way to find the appropriate alpha value is to draw a graph of the $R^2$ value for the alpha value. You can see that the $R^2$ value decreases as the alpha value increases.
+
+```python
+train_score = []
+test_score = []
+
+alpha_list = [0.001, 0.01, 0.1, 1, 10, 100]
+for alpha in alpha_list:
+    ridge = Ridge(alpha=alpha)
+    ridge.fit(train_poly, train_target)
+    train_score.append(ridge.score(train_poly, train_target))
+    test_score.append(ridge.score(test_poly, test_target))
+```
+
+![find_alpha](./resources/ridge.png)
+![find_alpha](./resources/lasso.png)
+
+|type| alpha | train_score | test_score |
+|---|-------|-------------|------------|
+|Linear| - | 0.990 | 0.971|
+|Ridge| 0.34 | 0.988| 0.987|
+|Lasso| 0.534 | 0.987| 0.986|
