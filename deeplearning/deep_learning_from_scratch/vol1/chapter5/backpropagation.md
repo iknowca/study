@@ -201,3 +201,15 @@ class Sigmoid:
 
 ## Affine/Softmax 계층
 
+행렬의 곱과 편향의 합을 계산그래프로 그려보면 다음과 같다.
+![](./img/mat_mul/main_ManimCE_v0.19.0.png)
+
+지금까지는 노드사이의 값이 스칼라였지만, 이번에는 행렬로 확장된다.
+행렬을 사용한 역전파도 행렬의 원소마다 계산을 반복하면 된다.
+
+$$
+\frac{\partial L}{\partial \mathbf X} = \frac{\partial L}{\partial \mathbf Y} \cdot \mathbf W^T
+$$
+$$
+\frac{\partial L}{\partial \mathbf W} = \mathbf X^T\cdot \frac{\partial L}{\partial \mathbf Y}
+$$

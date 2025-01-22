@@ -43,4 +43,6 @@ class main(Scene):
         self.wait(2)
         self.play(subtitle.animate.become(MathTex(r"x>0").scale(1).shift(UP*2).move_to(subtitle)),
                     backward0_label.animate.become(MathTex(r"\frac{\partial L}{\partial y}").next_to(backward_arrow_0, DOWN).set_color(BLUE).move_to(backward0_label)))
-                  
+        self.wait(2)
+        self.play(subtitle.animate.become(MathTex(r"x\le 0").move_to(subtitle).scale(1),
+                    backward0_label.animate.become(MathTex(r"0").move_to(backward0_label).set_color(BLUE))))
