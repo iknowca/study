@@ -12,8 +12,8 @@ if __name__ == "__main__":
     (x_train, t_train), (x_test, t_test) = \
         load_mnist(flatten=True, normalize=False)
         
-    img = x_train[0]
-    label = t_train[0]
+    img = x_train[5]
+    label = t_train[5]
     
     img = img.reshape(28, 28)
     

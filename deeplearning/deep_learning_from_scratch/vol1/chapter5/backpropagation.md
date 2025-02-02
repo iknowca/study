@@ -213,3 +213,73 @@ $$
 $$
 \frac{\partial L}{\partial \mathbf W} = \mathbf X^T\cdot \frac{\partial L}{\partial \mathbf Y}
 $$
+
+[ Y = XW ]
+
+여기서 Y의 각 원소 ( y_{ij} )는 다음과 같이 표현됩니다:
+
+$$y_{ij} = \sum_{k} x_{ik} w_{kj} $$
+
+이제, L에 대한 X의 기울기 dL/dX를 계산하기 위해, L에 대한 Y의 기울기 dL/dY를 알고 있다고 가정합니다. 그러면:
+
+$$ \frac{\partial L}{\partial X_{ij}} = \sum_{k} \frac{\partial L}{\partial Y_{ik}} \frac{\partial Y_{ik}}{\partial X_{ij}} $$
+
+여기서 Y의 각 원소에 대해 X의 원소에 대한 미분은 W의 전치 행렬이 됩니다:
+
+$$\frac{\partial Y_{ik}}{\partial X_{ij}} = W_{kj}$$
+
+따라서:
+
+$$\frac{\partial L}{\partial X_{ij}} = \sum_{k} \frac{\partial L}{\partial Y_{ik}} W_{kj}$$
+
+이를 행렬 형태로 표현하면:
+
+$$\frac{\partial L}{\partial X} = \frac{\partial L}{\partial Y} W^T$$
+
+가 된다.
+
+## Softmax-with-Loss 계층
+소프트 맥스 함수는 입력값을 정규화 하여 출력한다.
+
+이전에 MNIST 추론에서의 순전파는 다음과 같이 이루어진다.
+![](./img/mnist/main_ManimCE_v0.19.0.png)
+
+softmax계층은 입력값을 정규화 한다. 이때 손실함수로 교차 엔트로피 오차를 포함하여 softmax-with-loss계층이라고 한다.
+
+![](./img/softmax_with_loss/main_ManimCE_v0.19.0.png)
+
+간소하게 표현된 softmax-with-loss계층은 다음과 같이 나타낼 수 있다.
+
+![](./img/softmax_with_loss2/main_ManimCE_v0.19.0.png)
+
+softmax 계층은 $(a_1, a_2, a_3)$을 정규화 하여$(y_1, y_2, y_3)$를 출력한다.
+
+교차 엔트로피 오차 계층은 softmax의 출력과 정답 레이블을 받고 이 데이터들로 부터 손실 L을 출력한다.
+
+그런데 여기서 softmax와 교차 엔트로피 오차를 같이 사용하는 이유를 알 수 있다.
+바로 softmax계층의 역전파가 $(y_1-t_1, y_2-t_2, y_3-t_3)$라는 결과를 얻을 수 있다.즉 softmax계층의 출력과 정답 레이블의 차이인 오차가 출력된다.
+
+```python
+class SoftmaxWithLoss:
+    def __init__(self):
+        self.loss = None
+        self.y = None
+        self.t = None
+
+    def forward(self, x, t):
+        self.t = t
+        self.y = softmax(x)
+        self.loss = cross_entropy_error(slef.y, self.t)
+        return self.loss
+    
+    def backward(self, dout=1):
+        batch_size = self.t.shape[0]
+        dx = (self.y - self.t) / batch_size
+        return dx
+```
+
+### 신경망 학습의 전체 구조
+1. 미니배치: 훈련 데이터 중 일부를 무작위로 가져온다.
+2. 기울기 산출: 미니배치의 손실함수 값을 줄이기 위 해 각 가중치 매개변수의 기울기를 구한다.
+3. 매개변수 갱신: 기울기를 사용하여 가중치 매개변수를 갱신한다.
+4. 반복: 1~3단계를 반복한다.
