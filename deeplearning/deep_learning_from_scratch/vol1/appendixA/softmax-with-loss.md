@@ -34,4 +34,4 @@ $$\frac{\partial L}{\partial y_k} = -\frac{t_k}{y_k}$$
 > $$y = \exp(x)$$
 > $$\frac{\partial y}{\partial x} = \exp(x)$$
 
-![](./img/appendix_a-back_softmax.drawio.png)
+![](./img/appendix_a-%20back_softmax.drawio.png)
