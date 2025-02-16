@@ -230,7 +230,7 @@ ReLU를 사용할 때는 특화된 초기값, He 초깃값을 사용한다. (카
 
 표준편차가 0.01인 정규분포를 가중치 초깃값으로 사용한 경우
 
-![](./img/weight_init_activation_histogram_xavier.png)
+![](./img/weight_init_relu_xavier.png)
 
 Xavier 초깃값을 사용한 경우
 
