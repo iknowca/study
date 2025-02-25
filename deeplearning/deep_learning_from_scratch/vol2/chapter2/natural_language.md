@@ -376,6 +376,12 @@ print(U[0])
 # [ 3.4094876e-01  0.0000000e+00  1.2051624e-01 -3.6082248e-16
 #  -1.1102230e-16  9.3232495e-01  1.6260980e-16]
 ```
+```python
+for word, word_id in word_to_id.items():
+    plt.annotate(word, (U[word_id, 0], U[word_id, 1]))
+plt.scatter(U[:,0], U[:,1], alpha=0.5)
+plt.show()
+```
 ![](./img/svd.png)
 
 "good bye", "hello" 그리고, "you"와 "i"가 가까이 있는 것을 확인 할 수 있다.
@@ -383,8 +389,8 @@ print(U[0])
 ## PTB 데이터 셋
 PTB는 Penn Treebank의 약자로, 주어진 corpus를 사용하여 단어의 분산 표현을 학습하는 것이 목적이다.
 word2vec의 발명자인 토마스 미콜로프(Tomas Mikolov)가 사용한 corpus이다.
-또한 몇가지 전처리가 되어있는데, 희소한 단어를 <unk>로 치환하거나, 구체적인 숫자를 N으로 치환하는 등의 전처리가 되어있다.
-각 문장 끝에는 <eos>라는 특수 문자를 삽입한다.
+또한 몇가지 전처리가 되어있는데, 희소한 단어를 `<unk>`로 치환하거나, 구체적인 숫자를 N으로 치환하는 등의 전처리가 되어있다.
+각 문장 끝에는 `<eos>`라는 특수 문자를 삽입한다.
 
 ```python
 window_size = 2
