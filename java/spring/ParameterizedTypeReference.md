@@ -1,4 +1,5 @@
 # ParameterizedTypeReference<T>
+#java #spring #resttemplate #webclient #httpclient
 
 ParameterizedTypeReference<T>는 스프링에서 제네릭 타입 정보를 런타임에 유지하기 위해서 사용되는 클래스이다.
 주로 RestTemplate나 WebClient와 같은 HTTP 클라이언트에서 사용된다.
