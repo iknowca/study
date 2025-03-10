@@ -667,3 +667,244 @@ def backward(self, dout=1):
 
 역전파에서는 순전파의 역순으로 각 계층의 backward()를 호출하면 된다.
 은닉측의 뉴런은 순전파시에 여러개로 복사되었으므로, 역전파때는 여러개의 기울기 값을 더해주면 된다.
+
+## 개선된 word2vec
+
+추가된 Embedding 계층과 네거티브 샘플링을 사용하여 word2vec을 구현할 수 있다.
+```python
+class CBOW:
+    def __init(self, vocab_size, hidden_size, window_size, corpus):
+        V, H = vocab_size, hidden_size
+
+        # 가중치 초기화
+        W_in = 0.01 * np.random.randn(V, H).astype('f')
+        W_out = 0.01 * np.random.randn(V, H).astype('f')
+
+        # 계층 생성
+        self.in_layers = []
+        for i in range(2 * window_size):
+            layer = Embedding(W_in)
+            self.in_layers.append(W_in)
+        self.ns_loss = NegativeSamplingLoss(W_out, corpus, power=0.75, sample_size=5)
+
+        # 가중치와 기울기 리스팅
+        layers = self.in_layers + [self.ns_loss]
+        self.params, self.grads = [], []
+        for layer in layers:
+            self.params += layer.params
+            self.grads += layer.grads
+        
+        # 단어의 분산 표현 저장
+        self.word_vecs = W_in
+```
+
+초기화 메서드에서 4개의 인수를 받는다.
+* vocab_size: 어휘 수
+* hidden_size: 은닉층 뉴런 수
+* window_size: CBOW모델의 컨텍스트 크기
+* corpus: 코퍼스(단어 ID 목록)
+
+계층을 생성할 때는 Embedding 계층을 `2* window_size`개 생성한다. 다음으로는 NegativeSamplingLoss 계층을 생성한다. 다음으로는 신경망에서 사용하는 모든 매개변수와 기울기를 인스턴스 변수 `params`와 `grads`에 저장한다. 마지막으로 단어의 분산 표현을 저장하기 위해 `word_vecs`에 가중치 행렬 $W_{in}$을 저장한다.
+```python
+def forward(self, contexts, target):
+    h = 0
+    for i, layer in enumerate(self.in_layers):
+        h += layer.forward(contexts[:, i])
+    h *= (1.0 / len(self.in_layers))
+    loss = self.ns_loss.forward(h, target)
+    return loss
+```
+이전에는 forward() 메서드에서 인수로 받는 컨텍스트와 타깃이 원핫 벡터였지만, 지금은 단어 ID이다.
+```python
+def backward(self, dout=1):
+    dout = self.ns_loss.backward(dout)
+    dout *= (1.0 / len(self.in_layers))
+    for layer in self.in_layers:
+        dout = layer.backward(dout)
+    return None
+```
+
+### CBOW 학습
+```python
+# 하이퍼파라미터 설정
+window_size = 5
+hidden_size = 100
+batch_size = 100
+max_epoch = 10
+
+# 데이터 읽기
+corpus, word_to_id, id_to_word = ptb.load_data('train')
+vocab_size = len(word_to_id)
+
+contexts, target = create_contexts_target(corpus, window_size)
+if config.GPU:
+    contexts, target = to_cpu(contexts), to_cpu(target)
+
+# 모델 등 생성
+model = CBOW(vocab_size, hidden_size, window_size, corpus)
+# model = SkipGram(vocab_size, hidden_size, window_size, corpus)
+optimizer = Adam()
+trainer = Trainer(model, optimizer)
+
+# 학습 시작
+trainer.fit(contexts, target, max_epoch, batch_size)
+trainer.plot()
+
+# 나중에 사용할 수 있도록 필요한 데이터 저장
+word_vecs = model.word_vecs
+if config.GPU:
+    word_vecs = to_cpu(word_vecs)
+params = {}
+params['word_vecs'] = word_vecs.astype(np.float16)
+params['word_to_id'] = word_to_id
+params['id_to_word'] = id_to_word
+pkl_file = 'cbow_params.pkl'  # or 'skipgram_params.pkl'
+with open(pkl_file, 'wb') as f:
+    pickle.dump(params, f, -1)
+```
+
+위의 CBOW 모델은 윈도우 사이즈가 5인 CBOW 모델이다. 즉, 타깃 단어를 예측하기 위해서 앞뒤로 5개의 단어를 사용한다. 이때 배치 사이즈는 100으로 설정하였다. 또한 학습은 10회 반복한다.
+학습이 끝난 후에는 단어 벡터를 저장한다. 단어 벡터는 `word_vecs`에 저장되어 있으며, 이 벡터는 나중에 사용할 수 있도록 파일로 저장한다. 또한 단어 ID와 단어를 매핑하기 위한 딕셔너리도 함께 저장한다.
+
+### 학습 평가
+
+이전에 구현한 most_similar() 메서드를 사용하여 단어 벡터를 평가할 수 있다.
+```python
+pkl_file = 'cbow_params.pkl'
+
+with open(pkl_file, 'rb') as f:
+    params = pickle.load(f)
+    word_vecs = params['word_vecs']
+    word_to_id = params['word_to_id']
+    id_to_word = params['id_to_word']
+
+querys = ['you', 'year', 'car', 'toyota']
+for query in querys:
+    most_similar(query, word_to_id, id_to_word, word_vecs, top=5)
+```
+```
+[query] you
+ we: 0.7421875
+ i: 0.6923828125
+ your: 0.60205078125
+ they: 0.58349609375
+ weird: 0.57177734375
+
+[query] year
+ month: 0.82763671875
+ week: 0.76171875
+ spring: 0.7470703125
+ summer: 0.740234375
+ decade: 0.70166015625
+
+[query] car
+ window: 0.6103515625
+ luxury: 0.60888671875
+ auto: 0.6064453125
+ cars: 0.58251953125
+ truck: 0.5634765625
+
+[query] toyota
+ digital: 0.6474609375
+ chevrolet: 0.6337890625
+ honda: 0.63232421875
+ minicomputers: 0.630859375
+ nec: 0.60791015625
+```
+"you"를 물었을 때, 비슷한 단어로 "i"와 "we"같은 인칭대명사가 나오는 것을 확인할 수 있고,
+"year"를 물었을 때는 "month", "day"와 같은 시간과 관련된 단어가 나오는 것을 확인할 수 있다.
+"toyota"를 물었을 때, "chevrolet", "honda"와 같은 자동차 제조사와 관련된 단어가 나오는 것을 확인할 수 있다.
+
+결과를 봤을때, CBOW 모델로 획득된 단어의 분산 표현이 제법 괜찮은 특성을 가진 것을 알 수 있다.
+
+word2vec으로 얻은 단어의 분산 표현은 비슷한 단어를 가까이 모을 뿐만 아니라, 더 복잡한 패턴까지 파악하고 있다.
+예를들어 "king - man + woman = queen" 으로 유명한 유추 문제를 풀 수 있다.
+조금 더 정확하게 말하면, word2vec의 단어의 분산 표현을 사용하여 유추 문제를 덧셈, 뺄셈으로 풀수 있다.
+
+단어 "man"의 분산 표현을 `vec('man')`이라고 할때, `vec('woman') - vec('man') = vec('?') - vec('king
+')`가 성립한다.
+![](./img/fig%204-20.PNG)
+
+```python
+def normalize(x):
+    if x.ndim == 2:
+        s = np.sqrt((x * x).sum(1))
+        x /= s.reshape((s.shape[0], 1))
+    elif x.ndim == 1:
+        s = np.sqrt((x * x).sum())
+        x /= s
+    return x
+
+def analogy(a, b, c, word_to_id, id_to_word, word_matrix, top=5, answer=None):
+    for word in (a, b, c):
+        if word not in word_to_id:
+            print('%s(을)를 찾을 수 없습니다.' % word)
+            return
+
+    print('\n[analogy] ' + a + ':' + b + ' = ' + c + ':?')
+    a_vec, b_vec, c_vec = word_matrix[word_to_id[a]], word_matrix[word_to_id[b]], word_matrix[word_to_id[c]]
+    query_vec = b_vec - a_vec + c_vec
+    query_vec = normalize(query_vec)
+
+    similarity = np.dot(word_matrix, query_vec)
+
+    if answer is not None:
+        print("==>" + answer + ":" + str(np.dot(word_matrix[word_to_id[answer]], query_vec)))
+
+    count = 0
+    for i in (-1 * similarity).argsort():
+        if np.isnan(similarity[i]):
+            continue
+        if id_to_word[i] in (a, b, c):
+            continue
+        print(' {0}: {1}'.format(id_to_word[i], similarity[i]))
+
+        count += 1
+        if count >= top:
+            return
+```
+
+```python
+analogy("king", 'man', 'queen', word_to_id, id_to_word, word_vecs)
+analogy("take", 'took', 'go', word_to_id, id_to_word, word_vecs)
+analogy("car", "cars", "child", word_to_id, id_to_word, word_vecs)
+analogy("good", "better", "bad", word_to_id, id_to_word, word_vecs)
+
+# [analogy] king:man = queen:?
+#  a.m: 6.7421875
+#  woman: 5.1796875
+#  yard: 4.9140625
+#  mother: 4.7421875
+#  hole: 4.71875
+
+# [analogy] take:took = go:?
+#  eurodollars: 4.59765625
+#  're: 4.5859375
+#  went: 4.38671875
+#  came: 4.36328125
+#  were: 4.15625
+
+# [analogy] car:cars = child:?
+#  a.m: 7.640625
+#  daffynition: 5.296875
+#  rape: 5.24609375
+#  children: 5.1875
+#  bond-equivalent: 4.74609375
+
+# [analogy] good:better = bad:?
+#  rather: 5.84765625
+#  more: 5.54296875
+#  less: 5.50390625
+#  greater: 4.5390625
+#  faster: 4.09375
+```
+
+## 전이학습
+
+word2vec으로 비슷한 단어를 가까이 모으는 용도로 사용할 수 있지만, word2vec에서 얻은 단어의 분산 표현의 장점은 이것이 끝이 아니고 전이 학습(transfer learning)에도 사용할 수 있다.
+
+예를들어 텍스트 분류, 문서 클러스터링, 품사 태그 달기, 감정 분석 등, 자연어 처리 작업에 있어 가장 먼저 단어를 벡터로 변환하는 작업을 미리 학습을 끝낸 단어의 분산 표현을 사용할 수 있으며, 이 학습된 분산 표현은 자연어 처리 작업 대부분에서 좋은 결과를 준다.
+
+단어의 분산 표현은 단어를 고정길이 벡터로 변환해주는 장점도 있다. 또한 문장도 단어의 분산 표현을 사용하여 고정 길이 벡터로 변환할 수 있다. 
+
+단어나 문장을 고정 길이 벡터로 변환할 수 있다는 점은 매우 중요한데, 자연어를 벡터로 변환할 수 있다면, 일반적인 머신러닝 기법을 적용할 수 있기 때문이다.
