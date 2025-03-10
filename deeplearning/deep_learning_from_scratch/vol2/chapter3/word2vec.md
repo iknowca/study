@@ -373,3 +373,243 @@ $$
 
 * 입력층의 원핫 표현과 가중치 행렬 $W_{in}$의 행렬곱
 * 은닉층과 출력층의 가중치 행렬 $W_{out}$의 행렬곱 및 소프트맥스 함수의 계산
+
+### Negative Sampling
+
+은닉층과 출력층 사이의 계산은 네거티브 샘플링을 통해 최적화 할수 있다. 네거티브 샘플링에서는 어휘가 아무리 많아져도 계산량을 낮은 수준에서 억제 할 수 있다.
+
+### 은닉층 이후 계산의 문제점
+
+은닉층 이후의 계산에서 오래 걸리는 부분은 다음과 같다.
+* 은닉층의 뉴런과 가중히 행렬 $W_{out}$의 행렬곱
+* 소프트맥스 함수의 계산
+  
+1. 은닉층의 벡터 크기가 100이고, 가중치 행렬 $W_{out}$의 크기가 100 X 100만이라면, 행렬곱의 계산량은 100 X 100만 = 10억이 된다.
+이렇게 큰 행렬의 곱을 계산하기 위해서는 시간과 메모리가 많이 소요된다.
+2. softmax계산에서도 같은 문제가 발생한다.
+$$ y_k = \frac{e^{s_k}}{\sum_{j=1}^{1000000} e^{s_j}} $$
+
+어휘 수가 100만개라면, 분모의 값을 얻기 위해서 $exp$계산은 100만번 수행해야 한다.
+
+### 네거티브 샘플링
+
+네거티브 샘플링을 이해하는데 중요한 포인트는 다중분류 (multi-class classification) 문제를 이진분류 (binary classification) 문제로 바꾼다(근사)는 것이다.
+
+> 다중분류 문제란 여러 개의 클래스 중 하나를 선택하는 문제이다.|
+>
+> 이진분류 문제란 'Yes' 또는 'No'로 대답하는 문제이다.
+
+CBOW모델은 컨텍스트가 주어졌을때, 타깃이 되는 단어를 추측하도록 만들어졌다. 예를 들어, **'you', 'goodbye'가 주어졌을때, 'say'라는 단어를 추측**하는 것이다.
+
+이제는 위 문제를 이진 분류 문제로 바꿔야 한다. 그러기 위해서는 질문을 "yes/no"로 답할 수 있는 문제로 바꿔야 한다.
+**예를들어 "you", "goodbye"라는 컨텍스트가 주어졌을때, 타깃은 "say"인가?** 라고 질문하는 것이다.
+
+이런 질문을 하면 출력층에서는 뉴런이 하나만 존재하면 된다, 출력층의 뉴런은 'say'의 점수만을 출력한다.
+
+![](./img/fig%204-7.png)
+
+은닉층과 출력 층의 가중치 행렬의 내적은 "say"에 해당하는 벡터만 추출하고, 그 추출된 벡터와 은닉층 뉴럭과의 내적만 계산하면 된다.
+
+![](./img/fig%204-8.PNG)
+
+출력층의 가중치 $W_{out}$에는 단어 벡터가 열로 저장되어 있으므로, "say"에 해당하는 벡터를 추출하고, 그 벡터와 은닉층 뉴런과의 내적을 계산하면 된다.
+
+### 시그모이드와 크로스 엔트로피 오차
+
+신경망의 이진분류 문제에서는 점수에 시그모이드 함수를 적용하여 확률로 변환하고, 손실함수로 크로스 엔트로피 오차를 사용한다.
+
+$$
+y =  \frac{1}{1 + e^{-x}}\quad \text{(sigmoid)}
+$$
+![](./img/fig%204-9.PNG)
+
+$$
+L = -t \log y - (1-t) \log (1-y) \quad \text{(cross entropy)}
+$$
+$t$ 값은 $0$ 혹은 $1$이며, $t$가 $1$이면 정답이 "yes"라는 의미이고, $t$가 $0$이면 정답이 "no"라는 의미이다. 따라서 $t$가 $1$이면 $-\log y$가 손실이 되고, $t$가 $0$이면 $-\log (1-y)$가 손실이 된다.
+
+![](./img/fig%204-10.PNG)
+
+여기서 주목해야 하는 점은 역전파의 $y-t$값인데, 그 의미는 오차가 커기면, 그 오차가 앞 계층으로 전달되므로, 오차가 클스록 가중치가 크게 갱신된다. 반대로 오차가 작으면 가중치가 작게 갱신된다.
+
+### 이진 분류 구현
+
+![](./img/fig%204-12.PNG)
+은닉층 뉴런 $\mathbf h$와 가중치 행렬 $W_{out}$의 내적을 구하고, 그 결과에 sigmoid with loss 계층에 입력하여 최종적으로 손실을 얻는다.
+
+#### Embedding Dot Layer
+
+Embedding Dot Layer는 Embedding 계층과 Dot 계층을 합친 것이다. Embedding 계층은 원핫 벡터를 단어 벡터로 변환하는 계층이고, Dot 계층은 두 벡터의 내적을 구하는 계층이다.
+
+![](./img/fig%204-13.PNG)
+
+```python
+class EmbeddingDot:
+    def __init__(self, W):
+        self.embed = Embedding(W)
+        self.params = self.embed.params
+        self.grads = self.embed.grads
+        self.cache = None
+    
+    def forward(self, h, idx):
+        target_W = self.embed.forward(idx)
+        out = np.sum(target_W * h, axis=1)
+
+        self.cache = (h, target_W)
+        return out
+    
+    def backward(self, dout)
+    h, target_W = self.cache
+    dout = dout.reshape(dout.shape[0], 1)
+
+    dtarget_W = dout * h
+    self.embed.backward(dtarget_W)
+    dh = dout * target_W
+    return dh
+```
+
+![](./img/fig%204-14.PNG)
+
+#### 네거티브 샘플링
+
+지금까지 긍정적인 예(정답) 에 대해서는 학습 하였지만, 부정적인 예(오답)에 대해서는 학습하지 않았기 때문에 어떤 결과가 나올지 알 수 없다.
+
+컨택스트가 "you", "goodbye"일때 "say"만 대상으로 이진 분류를 하였지만, "say"가 아닌 단어들도 존재한다. 이 단어들은 부정적인 예가 된다. 따라서 부정적인 예에 대해서도 학습을 해야 한다.
+예를들어 "auto"라는 단어에 대해서는 어떤 대답을 할지 예상할 수 없다.
+
+> 다중분류 문제를 이진 분류 문제로 바꾸기 위해서는 정답과 오답에 대해 각각 바르게 분류 할 수 있어야 한다. 따라서 긍정적 예와 부정적 예 모두 대상으로 문제를 생각해야 한다.
+
+그렇다면 모든 부정적 예를 대상으로 학습하면 될까?
+하지만 모든 부정적 예를 대상으로 학습하는 방법은 어휘수가 늘어나면, 감당할 수 없다. 그래서 근사적인 해결방법으로 부정적 예를 몇가지 선별(샘플링)하여 사용한다.
+
+네거티브 샘플링 기법은 긍정적 예를 타깃으로 한 경우의 손실을 구하고, 동시에 부정적 예를 몇개 샘플링 선별하여 부정적 예에 대한 손실을 구한다. 그리고 각각의 데이터의 손실을 더한 값을 최종 손실로 한다.
+
+예를들어 긍정적 예 "say", 부정정 예 "hello", "i" 를 샘플링 하였을대 다음과 같이 계산 그래프를 구성할 수 있다.
+![](./img/fig%204-17.PNG)
+
+##### 샘플링 기법
+
+샘플링 하는데 있어서, 가장 간단한 방법은 무작위로 샘플링 하는 것이다.
+
+그러나 단순히 무작위로 샘플링하는 것보다 좋은 방법이 있는데, 말뭉치의 통계 데이터를 기초로 샘플링 하는 것이다. 코퍼스에서 자주 등장하는 단어는 많이 추출하고, 드물게 등장하는 단어는 적게 추출하는 것이다.
+
+단어 빈도를 기준으로 샘플링 하려면, 말뭉치에서 단어의 출현 횟수를 확률 분포로 나타내고, 이 확률 분포를 사용하여 샘플링을 한다.
+![](./img/fig%204-18.PNG)
+
+```python
+import numpy as np
+
+words = ['you', 'say', 'goodbye', 'I', 'hello', '.']
+
+# 무작위 1개 샘플링
+print(np.random.choice(words))
+# you
+
+# 무작위 5개 샘플링 중복=true
+print(np.random.choice(words, size=5))
+# ['you' 'say' 'you' 'I' 'you']
+
+# 무작위 5개 샘플링 중복=false
+print(np.random.choice(words, size=5, replace=False))
+# ['you' 'say' 'I' '.' 'hello']
+
+# 무작위 5개 샘플링 확률분포에 따라
+p = [0.5, 0.1, 0.05, 0.2, 0.05, 0.1]
+print(np.random.choice(words, size=5, p=p))
+# ['.' 'goodbye' 'you' 'you' 'I']
+```
+
+`np.random.choice`를 사용하여 무작위로 샘플링을 할 수 있다.
+* `size`: 샘플링할 개수
+* `replace`: 중복여부
+* `p`: 확률 분포
+
+단, **`word2vec`** 에서는 확률분포에서 0.75제곱을 취할것을 권고한다.
+
+$$
+P'(w_i) = \frac{P(w_i)^{3/4}}{\sum_{j=1}^V P(w_j)^{3/4}}
+$$
+
+이런식으로 식을 수정하는 이유는 출현 확률이 낮은 단어를 '버리지 않기'위해서이다.
+
+```python
+p = [0.7, 0.29, 0.01]
+new_p = np.power(p, 3/4)
+new_p /= np.sum(new_p)
+print(new_p)
+#[0.64196878 0.33150408 0.02652714]
+```
+수정전 확률이 $1\%$였던  원소가 $2.65\%$로 증가한 것을 확인할 수 있다. 낮은 확률의 단어가 버려지지 않도록 확률을 조정한 것이다. 다만, 0.75라는 값은 경험적인 수치이므로 다른 값으로 대체될 수 있다.
+
+#### UnigramSampler
+
+UnigramSampler는 단어의 출현 확률을 기반으로 샘플링을 수행하는 클래스이다. 이 클래스는 단어의 출현 확률을 기반으로 샘플링을 수행하는 기능을 제공한다.
+
+```python
+corpus = np.array([0, 1, 2, 3, 4, 1, 2, 3])
+power = 0.75
+sample_size = 2
+
+sampler = UnigramSampler(corpus, power, sample_size)
+target = np.array([1, 3, 0])
+negative_sample = sampler.get_negative_sampler(target)
+print(negative_sample)
+# [[0 3]
+# [1 2]
+# [2 3]]
+```
+위 코드에서는 긍정적 예로 [1, 3, 0] 3개의 데이터를 사용하고, 각각의 데이터에 대해 부정적 예를 2개씩 샘플링 하였다.
+
+### 네거티브 샘플링 구현
+
+```python
+class NegativeSampling:
+    def __init__(self, W, corpus, power=0.75, sample_size=5):
+        self.sample_size = sample_size
+        self.sampler = UnigramSampler(corpus, power, sample_size)
+        self.loss_layers = [SigmoidWithLoss() for _ in range(sample_size + 1)]
+        self.embed_dot_layers = [EmbeddingDot(W) for _ in range()]
+        self.params, self.grads = [], []
+        for layer in self.loss_layers:
+            self.params += layer.params
+            self.grads += layer.grads
+```
+
+초기화 메서드의 인수로 출력측 가중치를 나타내는 $W$와 코퍼스, 샘플링의 파라미터인 power, 샘플링할 개수인 sample_size를 받는다.
+
+인스턴스 변수인 loss_layers와 embed_dot_layers에 원하는 계층을 리스트로 보관하는데, 부정적 예를 다루는 계층이 sample_size개이고 긍정적 예를 다루는 계층이 1개이므로, 총 sample_size + 1개의 계층을 생성한다.
+또한 0번째 계층 loss_layers[0]과 embed_dot_layers[0]은 긍정적 예를 다루는 계층이고, 나머지 계층들은 부정적 예를 다루는 계층이다.
+
+```python
+def forward(self, h, target):
+    batch_size = target.shape[0]
+    negative_sample = self.sampler.get_negative_sample(target)
+
+    # 긍정적 예 순전파
+    score = self.embed_dot_layers[0].forward(h, target)
+    correct_label = np.ones(batch_size, dtype=np.int32)
+    loss = self.loss_layers[0].forward(score, correct_label)
+
+    # 부정적 예 순전파
+    negative_label = np.zeros(batch_size, dtype=np.int32)
+    for i in range(self.sample_size):
+        negative_target = negative_sample[:, i]
+        score = self.embed_dot_layers[1 + i].forward(h, negative_target)
+        loss += self.loss_layers[1 + i].forward(score, negative_label)
+
+    return loss
+```
+
+인수로는 은닉층 뉴런 h와 긍정적 예의 타깃 target을 받는다. 우선 self.sampler를 이용하여 부정적 예를 샘플링하여 negative_sample에 저장하고, 긍정적 예와 부정적 예 각각의 데이터에 대해서 순정파를 수행해 그 손실을 더한다.
+
+```python
+def backward(self, dout=1):
+    dh = 0
+    for l0, l1 in zip(self.loss_layers, self.embed_dot_layers):
+        dout = l0.backward(dout)
+        dh += l1.backward(dout)
+    return dh
+```
+
+역전파에서는 순전파의 역순으로 각 계층의 backward()를 호출하면 된다.
+은닉측의 뉴런은 순전파시에 여러개로 복사되었으므로, 역전파때는 여러개의 기울기 값을 더해주면 된다.
