@@ -373,7 +373,61 @@ $$
 
 * 입력층의 원핫 표현과 가중치 행렬 $W_{in}$의 행렬곱
 * 은닉층과 출력층의 가중치 행렬 $W_{out}$의 행렬곱 및 소프트맥스 함수의 계산
+* 
 
+
+![](./img/fig%204-3.png)
+
+단어의 원핫 표현도 100만 차원이고, 가중치 행렬도 100만 차원이다. 즉, 100만 X 100만의 행렬곱을 수행해야 한다.
+그러나 이 행렬곱에서 수행하는 계산은 단지 행렬의 특정 행을 추출하는 작업이다.
+
+## Embedding Layer 구현
+```python
+
+class Embedding:
+    def __init__(self, W):
+class Embedding:
+    def __init__(self, W):
+        self.params = [W]
+        self.grads = [np.zeros_like(W)]
+        self.idx = None
+
+    def forward(self, idx):
+        W, = self.params
+        self.idx = idx
+        out = W[idx]
+        return out
+```
+사실 너무 쉬워서 설명 할 것도 없다. foward() 메서드에서 가중치 행렬 $W$의 특정 행을 추출하는 작업을 수행한다. 
+
+역전파에서는 앞층에서 전해진 기울기를 그대로 전달하면 된다. 단, 앞 층으로부터 전해진 기울기를 가중치 기울이 $dW$의 특정 행에 설정해야 한다.
+
+```python
+def backward(self, dout):
+    dW, = self.grads
+    dW[...] = 0
+    dW[self.idx] = dout
+    return None
+```
+
+이렇게 끝난다면 좋겠지만, 배치 처리를 할 때 문제가 발생할 수 있다. 동일한 idx의 원소가 중복되는 경우, dout이 덮어써지게 된다.
+그러므로 '할당'이 아닌 '누적'을 해야 한다.
+```python
+def backward(self, dout):
+    dW, = self.grads
+    dW[...] = 0
+    for i, idx in enumerate(self.idx):
+        dW[idx] += dout[i]
+    return None
+```
+또한 for문 대신 최적화를 위해 numpy의 np.add.at()을 사용하여 구현할 수 있다.
+```python
+def backward(self, dout):
+    dW, = self.grads
+    dW[...] = 0
+    np.add.at(dW, self.idx, dout)
+    return None
+```
 ### Negative Sampling
 
 은닉층과 출력층 사이의 계산은 네거티브 샘플링을 통해 최적화 할수 있다. 네거티브 샘플링에서는 어휘가 아무리 많아져도 계산량을 낮은 수준에서 억제 할 수 있다.
