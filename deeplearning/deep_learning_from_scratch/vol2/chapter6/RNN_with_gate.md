@@ -94,3 +94,145 @@ def clip_grads(grads, max_norm):
         for grad in grads:
             grad *= rate
 ```
+```
+Before clipping:
+[[0.17580423 6.68174327 4.26460264]
+ [2.50172378 5.96060279 7.51967006]
+ [8.69938026 9.60995087 5.35574616]]
+[[3.00875859 1.97693958 6.19630767]
+ [8.89188166 6.44056629 0.24312801]
+ [9.07131188 1.72330739 1.46642435]]
+After clipping:
+[[0.03538002 1.3446789  0.85823728]
+ [0.5034637  1.19955175 1.51330892]
+ [1.75072172 1.93397107 1.07782634]]
+[[0.60550279 0.3978526  1.24698658]
+ [1.789462   1.29614283 0.04892871]
+ [1.82557174 0.34680996 0.29511309]]
+```
+
+## LSTM
+
+기울기 소실을 해결하기 위해서는 RNN계층의 아키텍쳐를 변경해야 한다.
+게이트가 추가된 RNN은 여러 종류가 제안되었지만, 그 중에서도 LSTM과 GRU가 가장 많이 사용된다.
+
+### 인터페이스
+
+![](./img/fig%206-11.png)
+
+LSTM 계층에서는 $\mathbf{c}$라는 경로가 추가된다. 이를 memory cell이라고 하며, LSTM 전용의 기억 메커니즘이다.
+
+memory cell의 특징은 데이터를 LSTM 내부에서만 주고 받는 것이다. LSTM안에서 완결되고, 다른 계층으로는 출력하지 않는다. 반면, 은닉상태 $\mathbf h$는 다른 계층으로 출력된다.
+
+그렇기 때문에 LSTM의 출력을 받는 쪽에서는 memory cell에 대해 생각할 필요가 없다.
+
+### 구조
+
+그림에서 보이다 싶이 LSTM에는 메모리 셀 $\mathbf{c_t}$가 $t$시각의 LSTM의 기억이 저장되어 있다.
+출력 $\mathbf{h_t}$는 메모리 셀 $\mathbf{c_t}$의 값에 $\tanh$를 취한 값이다.
+
+![](./img/fig%206-12.png)
+
+메모리 셀 $\mathbf{c_t}$는 3개의 입력 $(\mathbf{x_t}, \mathbf{h_{t-1}}, \mathbf{c_{t-1}})$을 받아서 계산된다.
+중요한 점은 갱신된 $\mathbf{c_t}$를 사용해 $\mathbf{h_t}$를 계산한다는 점이다.
+
+### 게이트
+
+게이트란 입력과 출력을 조절하는 역할을 한다.
+0또는 1뿐만 아니라, 0과 1사이의 값을 가질 수 있다.
+중요한 것은 '게이트를 얼마나 열지'도 데이터로 부터 학습한다는 것이다.
+
+### output 게이트
+
+은닉상태 $\mathbf{h_t}$는 메모리 셀 $\mathbf{c_t}$의 값을 $\tanh$로 변환한 값이다.
+이 계산에 어떤 게이트를 사용하는데, 그 의미는 '그것이 다음 시각의 은닉상태($\mathbf{h_t}$)로 얼마나 중요한지'에 대한 것이다.
+
+output 게이트의 열림상태는 입력 $\mathbf{x_t}$와 은닉상태 $\mathbf{h_{t-1}}$에 의해 결정된다.
+$$
+\mathbf{o} = \sigma(\mathbf{x_t} \mathbf{W_{x}^o} + \mathbf{h}_{t-1} \mathbf{W_{h}^o} + b^o)
+$$
+위에서 계산한 $\mathbf{o}$는 $\mathbf{c_t}$와 곱해져서 $\mathbf{h_t}$를 계산한다.
+
+![](./img/fig%206-15.png)
+
+다만 위에서 계산하는 '곱'은 행렬곱이 아니라, 원소별 곱으로 Hadamard product라고 한다.
+
+$$
+\mathbf{h_t} = \mathbf{o} \odot \tanh(\mathbf{c_t})
+$$
+
+### forget 게이트
+
+망각은 더 나은 전진을 낳는다. -니체
+
+$\mathbf{c_{t-1}}$의 기억중에서 불필요한 기억을 잊게 해주는 게이트를 추가하여 잊는 것을 가능하게 한다.
+
+![](./img/fig%206-16.png)
+
+forget 게이트에서도 입력 $\mathbf{x_t}$와 은닉상태 $\mathbf{h_{t-1}}$를 사용한다.
+
+$$
+\mathbf{f} = \sigma(\mathbf{x_t} \mathbf{W_{x}^f} + \mathbf{h}_{t-1} \mathbf{W_{h}^f} + b^f)
+$$
+
+구한 $\mathbf{f}$는 $\mathbf{c_{t-1}}$와 곱해져서 $\mathbf{c_t}$를 계산한다.
+$$
+\mathbf{c_t} = \mathbf{f} \odot \mathbf{c_{t-1}}
+$$
+
+### 새로운 메모리 셀
+
+forget 게이트를 사용하면, 이전 시각의 기억을 잊는 것이 가능하지만,
+그렇다고 해서 새로운 기억을 추가하지 않으면, 기억이 계속 줄어들게 된다.
+그렇기 때문에 새로운 기억을 추가하는 셀을 추가한다.
+
+![](./img/fig%206-17.png)
+
+새로운 기억을 추가하는 셀은 $\mathbf{g}$라고 하며, $\tanh$를 사용하여 새로운 기억을 추가한다.
+$$
+\mathbf{g} = \tanh(\mathbf{x_t} \mathbf{W_{x}^g} + \mathbf{h}_{t-1} \mathbf{W_{h}^g} + b^g)
+$$
+$\mathbf{g}$는 $\mathbf{c_t}$에 더해져서 새로운 기억을 추가한다.
+
+### input 게이트
+
+input 게이트는 새로운 기억을 얼마나 추가할지를 결정한다.
+$\mathbf{g}$를 무조건 수용하는 것이 아니라, 적절히 취사 선택하는 역할을 담당한다.
+
+![](./img/fig%206-18.png)
+$$
+\mathbf{i} = \sigma(\mathbf{x_t} \mathbf{W_{x}^i} + \mathbf{h}_{t-1} \mathbf{W_{h}^i} + b^i)
+$$
+$\mathbf{i}$는 $\mathbf{g}$와 곱해져서 $\mathbf{c_t}$에 더해진다.
+
+### 기울기 소실 제거
+
+![](./img/fig%206-19.png)
+
+메모리셀의 역전파에서는 '+'와 '$\times$'연산만 수행하게 된다. '+' 연산은 상류의 기울기를 그대로 흘려보내기 때문에 기울기 변화가 없다.
+
+'$\times$'에서는 'matmul'이 아닌 'Hadamard product'를 사용하는데, 매 $t$마다 다른 게이트 값을 사용하기 때문에, 곱셈의 효과가 누적되지 않아 기울기 소실이 발생하기 힘든 구조가 된다.
+
+'$\times$'는 forget 게이트가 제어하는데, forget 게이트가 '잊어야한다'라고 판단한 원소의 경우에는 기울기가 작아지지만, '잊어서는 안된다'라고 판단한 원소에 대해서는 그 기울기가 약화되지 않은 상태로 과거로 전파된다.
+
+### LSTM 구현
+
+LSTM을 구현하기 위해서는 다음과 같은 4개의 게이트를 구현해야 한다.
+
+- forget 게이트
+  $$ \mathbf{f} = \sigma(\mathbf{x_t} \mathbf{W_{x}^f} + \mathbf{h}_{t-1} \mathbf{W_{h}^f} + b^f) $$
+- input 게이트
+    $$ \mathbf{i} = \sigma(\mathbf{x_t} \mathbf{W_{x}^i} + \mathbf{h}_{t-1} \mathbf{W_{h}^i} + b^i) $$
+- output 게이트
+  $$ \mathbf{o} = \sigma(\mathbf{x_t} \mathbf{W_{x}^o} + \mathbf{h}_{t-1} \mathbf{W_{h}^o} + b^o) $$
+- new memory cell
+  $$ \mathbf{g} = \tanh(\mathbf{x_t} \mathbf{W_{x}^g} + \mathbf{h}_{t-1} \mathbf{W_{h}^g} + b^g) $$
+
+메모리 셀은 다음과 같은 식을 통해 구할 수 있다.
+$$
+\mathbf{c_t} = \mathbf{f} \odot \mathbf{c_{t-1}} + \mathbf{i} \odot \mathbf{g}
+$$
+그리고 은닉상태는 다음과 같이 구할 수 있다.
+$$
+\mathbf{h_t} = \mathbf{o} \odot \tanh(\mathbf{c_t})
+$$
