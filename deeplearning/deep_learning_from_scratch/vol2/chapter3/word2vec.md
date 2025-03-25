@@ -383,9 +383,6 @@ $$
 
 ## Embedding Layer 구현
 ```python
-
-class Embedding:
-    def __init__(self, W):
 class Embedding:
     def __init__(self, W):
         self.params = [W]
