@@ -205,3 +205,144 @@ def backward(self, dh):
 
 ### Decoder
 decoder클래스는 Encoder로부터 h를 받아 다른 문자열을 출력한다.
+
+![](./img/fig%207-16.png)
+
+디코더 계층은 인코더와 마찬가지로 LSTM으로 구현되며, 다음과 같은 구조를 갖는다.
+
+![](./img/fig%207-17.png)
+
+### 결정론적 방법 deterministic method
+
+결정론적 방법은 매번 같은 단어를 선택하는 방법이다. 확률적 방법(probabilistic method)과는 반대되는 개념이다.
+계산하는 덧셈 문제에서는 확률적인 비결정성을 배제하고 결정론적인 방법을 사용한다.
+
+![](./img/fig%207-18.png)
+
+argmax노드를 사용하여 확률이 가장 높은 원소의 인덱스를 선택한다.
+
+![](./img/fig%207-19.png)
+
+```python
+class Decoder:
+    def __init__(self, vocab_size, wordvec_size, hidden_size):
+        V, D, H = vocab_size, wordvec_size, hidden_size
+        rn = np.random.randn
+
+        embed_W = (rn(V, D) / 100).astype('f')
+        lstm_Wx = (rn(D, 4 * H) / np.sqrt(D)).astype('f')
+        lstm_Wh = (rn(H, 4 * H) / np.sqrt(H)).astype('f')
+        lstm_b = np.zeros(4 * H).astype('f')
+        affine_W = (rn(H, V) / np.sqrt(H)).astype('f')
+        affine_b = np.zeros(V).astype('f')
+
+        self.embed = TimeEmbedding(embed_W)
+        self.lstm = TimeLSTM(lstm_Wx, lstm_Wh, lstm_b, statful = True)
+        self.affine = TimeAffine(affine_W, affine_b)
+        self.params, self.grads = [], []
+        for layer in (self.embed, self.lstm, self.affine):
+            self.params += layer.params
+            self.grads += layer.grads
+        
+    def forward(self, xs, h):
+        self.lstm.set_state(h)
+
+        out = self.embed.forward(xs)
+        out = self.lstm.foward(out)
+        score = self.affine.forward(out)
+        return score
+
+    def backward(self, dscore):
+        dout = self.affine.backward(dscore)
+        dout = self.lstm.backward(dout)
+        dout = self.embed.backward(dout)
+        dh = self.lstm.dh
+        return dh
+
+    def generate(self, h, start_id, sample_size):
+        sampled = []
+        sample_id = start_id
+        self.lstm.set_state(h)
+
+        for _ in range(sample_size):
+            x = np.array(sample_id).reshape((1, 1))
+            out = self.embed.forward(x)
+            out = self.lstm.forward(out)
+            score = self.affine.forward(out)
+
+            sample_id = np.argmax(score.flatten())
+            sampled.append(int(smaple_id))
+        
+        return sampled
+```
+
+## seq2seq
+
+```python
+
+class Seq2seq:
+    def __init__(self, vocab_size, wordvec_size, hidden_size):
+        V, D, H = vocab_size, wordvec_size, hidden_size
+        self.encoder = Encoder(V, D, H)
+        self.decoder = Decoder(V, D, H)
+        self.softmax = TimeSoftmaxWithLoss()
+
+        self.params = self.encoder.params + self.decoder.params
+        self.grads = self.encoder.grads + self.decoder.grads
+
+    def forward(self, xs, ts):
+        decoder_xs, decoder_ts = ts[:, :-1], ts[:, 1:]
+
+        h = self.encoder.forward(xs)
+        score = self.decoder.forward(decoder_xs, h)
+        loss = self.softmax.forward(score, decoder_ts)
+        return loss
+
+    def backward(self, dout=1):
+        dout = self.softmax.backward(dout)
+        dh = self.decoder.backward(dout)
+        dout = self.encoder.backward(dh)
+        return dout
+
+    def generate(self, xs, start_id, sample_size):
+        h = self.encoder.forward(xs)
+        sampled = self.decoder.generate(h, start_id, sample_size)
+        return 
+```
+
+![img/base.png](img/base.png)
+
+## 개선
+
+### 입력 데이터 반전
+
+![](./img/fig%207-23.png)
+
+![](./img/reverse.png)
+
+데이터를 반전시킨것 만으로도 학습이 굉장히 개선되는 것을 확인할 수 있다.
+
+어떤문제를 다루냐에 따라 다르지만, 대부분의 경우 더 좋은 결과로 이어진다.
+
+> 여기서부터는 글쓴이도 왜 그런지는 모르겠다는 말을 한다...
+
+### 엿보기
+
+![](./img/fig%207-25.png)
+![](./img/fig%207-26.png)
+
+이때 사실 LSTM과 AFFINE계층에 입력되는 벡터는 2개가 되는 것이 아니라 연결되 concat 되어 1개가 된다.
+
+![](./img/peeky_reverse.png)
+
+## 활용
+
+#### 챗봇... 문장요약... 알고리즘 학습...
+
+### 이미지 캡셔닝
+
+![](./img/fig%207-31.png)
+
+encoder-decoder 구조를 사용하여 이미지를 설명하는 문장을 생성하는 모델이다.
+
+encoder는 CNN을 사용하여 이미지를 벡터로 변환하고, decoder는 이 벡터를 기반으로 문장을 생성한다.
