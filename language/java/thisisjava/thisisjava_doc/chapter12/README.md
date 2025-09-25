@@ -5,7 +5,7 @@
 ## `Thread`클래스로 스레드 생성
 `java.lang.Thread`클래스로 작업 스레드 객체를 직접 생성하기 위해서는 Runnable을 매개값으로 갖는 생성자를 호출해야 한다.
 ```java
-Thread thread = new Thread(Runnable target);
+Thread thread = new Thread(target);
 ```
 
 ## `Thread` 하위 클래스로 생성
@@ -35,7 +35,7 @@ public class WorkerThread extends Thread {
 실행 상태: Running
 일시 정지 상태: WAITING, TIME_WAITING, BLOCKED
 
-##
+## 스레드 상태 제어
 |메소드 | 설명                                                                                              |
 |---|-------------------------------------------------------------------------------------------------|
 |`interrupt()` | 일시 정지 산태의 스레드에 `InterruptedException`예외를 발생시킨다.                                                 |
