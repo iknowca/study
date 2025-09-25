@@ -21,7 +21,7 @@ public class StatePrintThread extends Thread{
                 break;
             }
             try {
-                Thread.sleep(500);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
             }
         }
