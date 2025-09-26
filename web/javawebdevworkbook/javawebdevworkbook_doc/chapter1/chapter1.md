@@ -107,3 +107,19 @@ RequestDispatcher는 현재 요청을 다른 서버의 자원(서블릿, JSP 등
 
 * `forward()`: 현재까지의 모든 response내용을 무시하고 JSP가 작성하는 내용을 브라우저로 전달.
 * `include()`: 현재까지의 response 내용 + JSP가 만든 내용을 브라우저로 전달.
+* 
+### HttpServletRequest의 주요 기능
+
+| 기능      | 메서드              | 설명 |
+|---------|------------------| --- |
+| MIME 타입 | `setContentType()` | 응답 데이터의 종류를 지정 |
+| 헤더      | `setHeader()` | 특정 이름의 HTTP 헤더 지정 |
+| 상태      | `setStatus()` | 404, 200, 500 등 응답 상태 코드 지정 |
+| 출력 | `getWriter()` | PrintWriteer를 이용해서 응답 메시지 작성 |
+| 쿠키 관련 | `addCookie()` | 응답 시에 특정 쿠키 추가 |
+| 전달 관련 | `sendRedirect()` | 브라우저에 이동을 지시 |
+
+* `sendRedirect()`
+
+`sendRedirect()`는 가장 많이 사용되는 HttpServletResoppnse메서드이다. HTTP의 Location 헤더로 전달되는데, 브라우저는 Location이 있는 응답을 받으면, 지정된 주소로 이동하고 다시 호출하게 된다.
+브라우저의 주소가 아예 변겨오디기 때문에 새로고침 요청을 미리 방지할 수 있다
