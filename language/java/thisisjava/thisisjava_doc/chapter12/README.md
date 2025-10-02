@@ -47,3 +47,12 @@ public class WorkerThread extends Thread {
 | `suspend()` | (Deprecated) 스레드를 일시 정지 상태로 만든다. `resume()`으로 실행 되기 상태가 될 수 있다.                                 |
 | `yield()` | 실행중 우선순위가 동일한 다른 스레드에게 실행을 양보하고 실행 대기 상태가 된다.                                                   |
 | `stop()` | (Deprecated)스레드를 즉시 종료시킨다.                                                                      |
+
+## 데몬 스레드
+
+데몬 스레드는 주 스레드의 작업을 돕는 보조적인 스레드이다. 주 스레드가 종료되면 데몬스레드는 강제적으로 자동 종료된다.
+
+스레드를 데몬으로 만들기 위해서는 주 스레드가 데몬이 될 스레드의 setDaemon(true)를 호출하면 된다.
+다만, start()를 호출한 이후 setDaemon을 호출하면 `IllegalThreadStateExeption`이 발생하기 때문에 start()메서드 호출전에 해야한다.
+
+## 스레드 그룹
