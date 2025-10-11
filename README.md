@@ -10,4 +10,4 @@
 
 #### [rustguide](language/rust/rustguide)
 
-#### [rustexample](language/rust/rustexample)
+#### [rustbyexample](language/rust/rustbyexample)
