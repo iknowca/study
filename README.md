@@ -9,5 +9,7 @@
 ### RUST
 
 #### [rustguide](language/rust/rustguide)
+* `start_date`: 2025-10-02
+* `end_date`: 2025-10-26 
 
 #### [rustbyexample](language/rust/rustbyexample)
