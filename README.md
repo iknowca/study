@@ -13,3 +13,9 @@
 * `end_date`: 2025-10-26 
 
 #### [rustbyexample](language/rust/rustbyexample)
+
+## CS
+
+### Compiler & Interpreter
+
+#### [crafting_interpreters](cs/compiler/crafting_interpreters)
