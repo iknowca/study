@@ -23,3 +23,13 @@
 ### Compiler & Interpreter
 
 #### [crafting_interpreters](cs/compiler/crafting_interpreters)
+
+## DeepLearning
+
+### DeepLearning Basic
+
+#### [DeepLearning from scratch VOL1.](deeplearning/deeplearning_from_scratch/vol1)
+
+## Math
+
+#### [Why Machines Learn](math/why_machines_learn)
