@@ -14,6 +14,10 @@
 
 #### [rustbyexample](language/rust/rustbyexample)
 
+### C++
+
+#### [doit c++](language/cpp/doitcpp)
+
 ## CS
 
 ### Compiler & Interpreter
