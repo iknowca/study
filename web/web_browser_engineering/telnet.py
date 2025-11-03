@@ -41,7 +41,6 @@ class URL:
         while True:
             line = response.readline()
             if line == "\r\n" or line=="\n": break
-            print(line)
             header, value = line.split(":", 1)
             response_headers[header.casefold()] = value.strip()
 
