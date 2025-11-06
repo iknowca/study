@@ -1,6 +1,5 @@
 import tkinter
-import telnet
-
+from ch01 import telnet
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
