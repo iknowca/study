@@ -33,3 +33,9 @@
 ## Math
 
 #### [Why Machines Learn](math/why_machines_learn)
+
+## Web
+
+#### [web_browser_engineering](web/web_browser_engineering)
+
+#### [java_web_dev_workbook](web/java_web_dev_workbook)
