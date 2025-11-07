@@ -1,0 +1,8 @@
+[package]
+name = "screen-capture"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+windows-capture = "1.5"
+image = "0.25"
