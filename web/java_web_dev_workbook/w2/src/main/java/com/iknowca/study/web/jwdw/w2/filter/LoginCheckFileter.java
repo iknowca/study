@@ -2,12 +2,15 @@ package com.iknowca.study.web.jwdw.w2.filter;
 
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.log4j.Log4j2;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Optional;
 
 @WebFilter(urlPatterns = {"/todo/*"})
 @Log4j2
@@ -26,6 +29,18 @@ public class LoginCheckFileter implements Filter {
             return;
         }
 
+        Cookie cookie = findCookie(req.getCookies(), "remember-me");
+
         chain.doFilter(req, resp);
+    }
+
+    private Cookie findCookie(Cookie[] cookies, String name) {
+        if (cookies == null || cookies.length == 0) {
+            return null;
+        }
+        Optional<Cookie> result = Arrays.stream(cookies)
+                .filter(ck -> ck.getName().equals(name))
+                .findFirst();
+        return result.orElse(null);
     }
 }
