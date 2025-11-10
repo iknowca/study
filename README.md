@@ -12,7 +12,7 @@
 * `start_date`: 2025-10-02
 * `end_date`: 2025-10-26 
 
-#### [rustbyexample](language/rust/rustbyexample)
+#### [programming_rust](language/rust/programming_rust)
 
 ### C++
 
@@ -23,6 +23,10 @@
 ### Compiler & Interpreter
 
 #### [crafting_interpreters](cs/compiler/crafting_interpreters)
+
+### network
+
+#### [tcp_ip_socket_programming](cs/network/tcp_ip_socket_programming)
 
 ## DeepLearning
 
