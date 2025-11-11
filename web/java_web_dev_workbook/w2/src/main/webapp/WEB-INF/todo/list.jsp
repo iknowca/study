@@ -9,6 +9,7 @@
 <h1>
     Todo List
 </h1>
+<h2>${appName}</h2>
 <ul>
     <c:forEach items="${dtoList}" var="dto">
         <li>
