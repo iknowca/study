@@ -4,19 +4,24 @@ use num::Complex;
 use image::ColorType;
 use image::png::PNGEncoder;
 use std::env;
+use std::time::Instant;
+
 fn main() {
+    let start = Instant::now();
+    println!("Starting execution...");
+
     let args: Vec<String> = env::args().collect();
     if args.len() != 5 {
         eprintln!("Usage: {} FILE PIXELS UPPERLEFT LOWERRIGHT", args[0]);
         eprintln!("Example: {} mandel.png 1000x650 -1.20,0.35 -1,0.20", args[0]);
         std::process::exit(1);
     }
-    
+
     let bounds:(usize, usize) = parse_pair(&args[2], 'x').expect("error parsing image dimensions");
     let upper_left = parse_complex(&args[3]).expect("error parsing upper left");
     let lower_right = parse_complex(&args[4]).expect("error parsing lower right");
     let mut pixels = vec![0; bounds.0 * bounds.1];
-    
+
     // render(&mut pixels, bounds, upper_left, lower_right);
     let threads = 8;
     let rows_per_band = bounds.1 /threads + 1;
@@ -35,26 +40,11 @@ fn main() {
     }
     write_image(&args[1], &pixels, bounds)
         .expect("error writng png file");
-}
 
-fn square_loop(mut x: u64) {
-    loop {
-        x = x * x;
-    }
-}
-
-fn square_add_loop(c: f64) {
-    let mut x = 0f64;
-    loop {
-        x = x * x + c;
-    }
-}
-
-fn complex_square_add_loop(c: Complex<f64>) {
-    let mut z= Complex { re: 0.0, im: 0.0};
-    loop {
-        z = z * z + c;
-    }
+    let duration = start.elapsed();
+    println!("\nExecution completed!");
+    println!("Total elapsed time: {:.4} seconds", duration.as_secs_f64());
+    println!("Total elapsed time: {:.2} milliseconds", duration.as_millis());
 }
 
 fn escape_time(c: Complex<f64>, limit: usize) -> Option<usize> {
