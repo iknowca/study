@@ -1,6 +1,5 @@
-package com.iknow.study.web.jwdw.springex;
+package com.iknow.study.web.jwdw.springex.sample;
 
-import com.iknow.study.web.jwdw.springex.sample.SampleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.junit.jupiter.api.Assertions;
