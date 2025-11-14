@@ -1,210 +1,95 @@
 import sys
-from typing import Optional, Tuple
-from dataclasses import dataclass
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 import struct
 import time
+import zlib
+import binascii
+from numba import njit
 
-@dataclass
-class Complex:
-    re: float
-    im: float
-
-    def __mul__(self, other: 'Complex') -> 'Complex':
-        return Complex(
-            self.re * other.re - self.im * other.im,
-            self.re * other.im + self.im * other.re
-        )
-
-    def __add__(self, other: 'Complex') -> 'Complex':
-        return Complex(self.re + other.re, self.im + other.im)
-
-    def norm_sqr(self) -> float:
-        return self.re * self.re + self.im * self.im
-
-
-def escape_time(c: Complex, limit: int) -> Optional[int]:
-    z = Complex(0.0, 0.0)
+@njit(fastmath=True)
+def escape_time(re_c, im_c, limit):
+    re_z = 0.0
+    im_z = 0.0
     for i in range(limit):
-        if z.norm_sqr() > 4.0:
+        # z = z*z + c
+        re2 = re_z * re_z - im_z * im_z + re_c
+        im2 = 2.0 * re_z * im_z + im_c
+        re_z, im_z = re2, im2
+
+        if re_z * re_z + im_z * im_z > 4.0:
             return i
-        z = z * z + c
     return None
 
-
-def parse_pair(s: str, separator: str) -> Optional[Tuple[float, float]]:
-    try:
-        idx = s.find(separator)
-        if idx == -1:
-            return None
-        left = float(s[:idx])
-        right = float(s[idx + 1:])
-        return (left, right)
-    except ValueError:
-        return None
-
-
-def parse_complex(s: str) -> Optional[Complex]:
-    result = parse_pair(s, ',')
-    if result is None:
-        return None
-    re, im = result
-    return Complex(re, im)
-
-
-def pixel_to_point(
-        bounds: Tuple[int, int],
-        pixel: Tuple[int, int],
-        upper_left: Complex,
-        lower_right: Complex
-) -> Complex:
-    width = lower_right.re - upper_left.re
-    height = upper_left.im - lower_right.im
-
-    return Complex(
-        upper_left.re + pixel[0] * width / bounds[0],
-        upper_left.im - pixel[1] * height / bounds[1]
+@njit(fastmath=True)
+def pixel_to_point(width, height, x, y, ul_re, ul_im, lr_re, lr_im):
+    return (
+        ul_re + x * (lr_re - ul_re) / width,
+        ul_im - y * (ul_im - lr_im) / height
     )
 
-
-def render(
-        pixels: list,
-        bounds: Tuple[int, int],
-        upper_left: Complex,
-        lower_right: Complex
-):
-    assert len(pixels) == bounds[0] * bounds[1]
-
-    for row in range(bounds[1]):
-        for column in range(bounds[0]):
-            point = pixel_to_point(bounds, (column, row), upper_left, lower_right)
-            count = escape_time(point, 255)
-
-            if count is None:
-                pixels[row * bounds[0] + column] = 0
-            else:
-                pixels[row * bounds[0] + column] = 255 - count
-
-
+@njit(fastmath=True)
 def render_band(args):
-    band, band_bounds, band_upper_left, band_lower_right, top = args
-    render(band, band_bounds, band_upper_left, band_lower_right)
-    return band, top
+    (width, height, ul_re, ul_im, lr_re, lr_im, y_start, y_end) = args
+    band = []
+
+    for y in range(y_start, y_end):
+        for x in range(width):
+            re, im = pixel_to_point(width, height, x, y, ul_re, ul_im, lr_re, lr_im)
+            count = escape_time(re, im, 255)
+            band.append(0 if count is None else 255 - count)
+
+    return y_start, band
 
 
-def write_image(filename: str, pixels: list, bounds: Tuple[int, int]):
-    width, height = bounds
-
-    # PNG 파일 생성 (간단한 구현)
-    with open(filename, 'wb') as f:
-        # PNG signature
-        f.write(b'\x89PNG\r\n\x1a\n')
-
-        # IHDR chunk
-        ihdr_data = struct.pack('>IIBBBBB', width, height, 8, 0, 0, 0, 0)
-        write_chunk(f, b'IHDR', ihdr_data)
-
-        # IDAT chunk
-        import zlib
-        raw_data = b''
-        for y in range(height):
-            raw_data += b'\x00'  # filter type
-            raw_data += bytes(pixels[y * width:(y + 1) * width])
-
-        compressed = zlib.compress(raw_data, 9)
-        write_chunk(f, b'IDAT', compressed)
-
-        # IEND chunk
-        write_chunk(f, b'IEND', b'')
-
-
-def write_chunk(f, chunk_type: bytes, data: bytes):
-    import struct
-    import binascii
-
-    length = len(data)
-    f.write(struct.pack('>I', length))
+def write_chunk(f, chunk_type, data):
+    f.write(struct.pack(">I", len(data)))
     f.write(chunk_type)
     f.write(data)
     crc = binascii.crc32(chunk_type + data) & 0xffffffff
-    f.write(struct.pack('>I', crc))
+    f.write(struct.pack(">I", crc))
+
+
+def write_image(filename, pixels, width, height):
+    with open(filename, "wb") as f:
+        f.write(b'\x89PNG\r\n\x1a\n')
+        ihdr = struct.pack(">IIBBBBB", width, height, 8, 0, 0, 0, 0)
+        write_chunk(f, b'IHDR', ihdr)
+
+        raw = bytearray()
+        for y in range(height):
+            raw.append(0)
+            raw.extend(pixels[y * width:(y + 1) * width])
+
+        write_chunk(f, b'IDAT', zlib.compress(raw, 9))
+        write_chunk(f, b'IEND', b'')
 
 
 def main():
-    args = sys.argv
+    file = sys.argv[1]
+    w, h = map(int, sys.argv[2].split('x'))
+    ul_re, ul_im = map(float, sys.argv[3].split(','))
+    lr_re, lr_im = map(float, sys.argv[4].split(','))
 
-    if len(args) != 5:
-        print(f"Usage: {args[0]} FILE PIXELS UPPERLEFT LOWERRIGHT", file=sys.stderr)
-        print(f"Example: {args[0]} mandel.png 1000x650 -1.20,0.35 -1,0.20", file=sys.stderr)
-        sys.exit(1)
+    pixels = [0] * (w * h)
+    workers = 8
+    rows_per = h // workers + 1
 
-    # Parse arguments
-    bounds_result = parse_pair(args[2], 'x')
-    if bounds_result is None:
-        print("error parsing image dimensions", file=sys.stderr)
-        sys.exit(1)
-    bounds = (int(bounds_result[0]), int(bounds_result[1]))
-
-    upper_left = parse_complex(args[3])
-    if upper_left is None:
-        print("error parsing upper left", file=sys.stderr)
-        sys.exit(1)
-
-    lower_right = parse_complex(args[4])
-    if lower_right is None:
-        print("error parsing lower right", file=sys.stderr)
-        sys.exit(1)
-
-    # Create pixel buffer
-    pixels = [0] * (bounds[0] * bounds[1])
-
-    # Parallel rendering
-    threads = 8
-    rows_per_band = bounds[1] // threads + 1
-
-    tasks = []
-    for i in range(threads):
-        top = rows_per_band * i
-        if top >= bounds[1]:
+    args = []
+    for i in range(workers):
+        y_start = rows_per * i
+        y_end = min(h, y_start + rows_per)
+        if y_start >= h:
             break
+        args.append((w, h, ul_re, ul_im, lr_re, lr_im, y_start, y_end))
 
-        height = min(rows_per_band, bounds[1] - top)
-        band_size = height * bounds[0]
-        band = [0] * band_size
+    with ProcessPoolExecutor(workers) as pool:
+        for y_start, band in pool.map(render_band, args):
+            pixels[y_start * w:y_start * w + len(band)] = band
 
-        band_bounds = (bounds[0], height)
-        band_upper_left = pixel_to_point(bounds, (0, top), upper_left, lower_right)
-        band_lower_right = pixel_to_point(bounds, (bounds[0], top + height), upper_left, lower_right)
-
-        tasks.append((band, band_bounds, band_upper_left, band_lower_right, top))
-
-    # Execute in parallel
-    with ThreadPoolExecutor(max_workers=threads) as executor:
-        results = executor.map(render_band, tasks)
-
-        # Merge results
-        for band, top in results:
-            start_idx = top * bounds[0]
-            for i, pixel_value in enumerate(band):
-                pixels[start_idx + i] = pixel_value
-
-    # Write output
-    try:
-        write_image(args[1], pixels, bounds)
-    except Exception as e:
-        print(f"error writing png file: {e}", file=sys.stderr)
-        sys.exit(1)
+    write_image(file, pixels, w, h)
 
 
 if __name__ == "__main__":
-    start_time = time.time()
-    print(f"Starting execution at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))}")
-
+    start = time.time()
     main()
-
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-    print(f"\nExecution completed at {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))}")
-    print(f"Total elapsed time: {elapsed_time:.4f} seconds")
-    print(f"Total elapsed time: {elapsed_time * 1000:.2f} milliseconds")
+    print(f"Time: {time.time() - start:.3f}s")

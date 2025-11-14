@@ -3,4 +3,6 @@ name = "mandelbrot"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "numba>=0.62.1",
+]

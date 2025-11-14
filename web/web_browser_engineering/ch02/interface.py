@@ -28,7 +28,7 @@ class Browser:
         for x, y, c in self.display_list:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
-            self.canvas.create_text(x, y - self.scroll, text=c, font=self.bi_times)
+            self.canvas.create_text(x, y - self.scroll, text=c)
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
@@ -80,6 +80,6 @@ def lex(body):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 2:
-        Browser().load(telnet.URL("http://browser.engineering/examples/xiyouji.html"))
+        Browser().load(telnet.URL("http://browser.engineering/text.html"))
     else: Browser().load(telnet.URL(sys.argv[1]))
     tkinter.mainloop()
